@@ -1,4 +1,4 @@
-# How to use the project:
+# How to use the project
 
 * Install all libraries run: `npm install`
 * For code parsing, this project uses the [Esprima](http://esprima.org/) library.
