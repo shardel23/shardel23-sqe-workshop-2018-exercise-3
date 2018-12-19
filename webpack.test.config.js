@@ -22,7 +22,6 @@ rules = rules.concat([
 ]);
 
 module.exports = {
-    entry: './test/entry.js',
     mode: 'development',
     output: {
         path: path.resolve(__dirname, 'dist-tests'),

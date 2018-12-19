@@ -8,7 +8,8 @@
         "start:dev": "webpack --watch",
         "test:watch": "mocha-webpack --watch",
         "test": "mocha-webpack --webpack-config webpack.test.config.js --reporter=json",
-        "coverage": "cross-env NODE_ENV=coverage nyc --reporter=html npm run test",
+        "test-spec": "mocha-webpack --webpack-config webpack.test.config.js --reporter=spec",
+        "coverage": "cross-env NODE_ENV=coverage nyc --reporter=json npm run test",
         "lint": "eslint -f json -o ./lint/eslint-report.json src"
     },
     "nyc": {
@@ -21,8 +22,11 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
+        "ast-eval": "^0.8.0",
+        "escodegen": "^1.11.0",
         "esprima": "^4.0.0",
-        "jquery": "^3.3.1"
+        "jquery": "^3.3.1",
+        "safe-eval": "^0.4.1"
     },
     "devDependencies": {
         "cross-env": "^5.2.0",

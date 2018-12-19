@@ -10,8 +10,8 @@
             }
 
             .textAreaWrapper {
-                width: 100%;
-                height: 80vh;
+                width: 50%;
+                height: 300px;
             }
 
             textarea {
@@ -31,7 +31,7 @@
                 </td>
                 <td>
                     <div>
-                        <label>Produced Table:</label>
+                        <label>Enter parameters values here</label>
                     </div>
                 </td>
             </tr>
@@ -42,8 +42,8 @@
                     </div>
                 </td>
                 <td>
-                    <div>
-                        <table id="resultTable" border="0"></table>
+                    <div class="textAreaWrapper">
+                        <textarea id="paramValuesTextArea"></textarea>
                     </div>
                 </td>
             </tr>
@@ -51,6 +51,7 @@
                 <td>
                     <div>
                         <button id="codeSubmissionButton">Parse code</button>
+                        <button id="parseTestCodeButton">Parse simple test code</button>
                         <button id="parseDefaultTextButton">Parse default code</button>
                     </div>
                 </td>
@@ -59,8 +60,13 @@
             </tr>
         </table>
 
+        <div>
+            <p id="codeParagraph">
+            </p>
+        </div>
+
         <div class="textAreaWrapper">
-            <textarea id="parsedCode" title="Enter code here"></textarea>
+            <textarea id="parsedCode"></textarea>
         </div>
 
         <script src="dist/bundle.js"></script>
