@@ -1,6 +1,10 @@
 import $ from 'jquery';
 import {parseCode} from './code-analyzer';
 import {defaultCodeToParse, substituteAndAnalyze, testCode} from './symbolic-substitutioner';
+import * as esgraph from 'esgraph';
+import Viz from 'viz.js';
+import {Module, render} from 'viz.js/full.render.js';
+import {createCFG} from './cfg/cfg';
 
 $(document).ready(function () {
     $('#codeSubmissionButton').click(() => {
@@ -22,8 +26,24 @@ function onParseButtonClick(text, valuesString) {
     let result = substituteAndAnalyze(parsedCode, values);
     let codeAfterSub = result[0];
     let analysis = result[1];
-    $('#parsedCode').val(JSON.stringify(parseCode(codeAfterSub), null, 3));
+    //$('#parsedCode').val(JSON.stringify(parseCode(codeAfterSub), null, 3));
     generateColorfulCode(codeAfterSub, analysis);
+    $('#parsedCode').val(rednderCFGGraph(parsedCode));
+}
+
+function rednderCFGGraph(ast) {
+    let cfg = esgraph(ast['body'][0]['body']);
+    let graph = esgraph.dot(cfg, ast);
+    graph = createCFG(ast).toString();
+    let dot = 'digraph{' + graph + '}';
+    let graphElement = document.getElementById('graph');
+    let viz = new Viz({Module, render});
+    viz.renderSVGElement(dot)
+        .then(function(element) {
+            graphElement.innerHTML = '';
+            graphElement.append(element);
+        });
+    return graph;
 }
 
 function parseValues(str) {
