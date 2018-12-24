@@ -8,6 +8,6 @@ export class GraphNode {
     }
 
     toString() {
-        return this.index + '[' + 'label=' + this.label + ']';
+        return this.index + ' [' + 'label=' + this.label + ']';
     }
 }

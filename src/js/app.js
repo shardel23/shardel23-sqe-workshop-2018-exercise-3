@@ -1,17 +1,33 @@
 import $ from 'jquery';
 import {parseCode} from './code-analyzer';
-import {defaultCodeToParse, substituteAndAnalyze, testCode} from './symbolic-substitutioner';
+import {substituteAndAnalyze, testCode} from './symbolic-substitutioner';
 import * as esgraph from 'esgraph';
 import Viz from 'viz.js';
 import {Module, render} from 'viz.js/full.render.js';
-import {createCFG} from './cfg/cfg';
+import {createCFG, dotgraphToCFG} from './cfg/cfg';
+
+const defaultInputCode = 'function foo(x, y, z){\n' +
+    '    let a = x + 1;\n' +
+    '    let b = a + y;\n' +
+    '    let c = 0;\n' +
+    '    \n' +
+    '    if (b < z) {\n' +
+    '        c = c + 5;\n' +
+    '    } else if (b < z * 2) {\n' +
+    '        c = c + x + 5;\n' +
+    '    } else {\n' +
+    '        c = c + z + 5;\n' +
+    '    }\n' +
+    '    \n' +
+    '    return c;\n' +
+    '}\n';
 
 $(document).ready(function () {
     $('#codeSubmissionButton').click(() => {
         onParseButtonClick($('#codePlaceholder').val(), $('#paramValuesTextArea').val());
     });
     $('#parseDefaultTextButton').click(() => {
-        onParseButtonClick(defaultCodeToParse, 'x=1,y=2,z=3');
+        onParseButtonClick(defaultInputCode, 'x=1,y=2,z=3');
     });
     $('#parseTestCodeButton').click(() => {
         onParseButtonClick(testCode, 'a=1,b=2');
@@ -23,18 +39,18 @@ function onParseButtonClick(text, valuesString) {
     let values = parseValues(valuesString);
     $('#codePlaceholder').val(text);
     let parsedCode = parseCode(codeToParse);
-    let result = substituteAndAnalyze(parsedCode, values);
-    let codeAfterSub = result[0];
-    let analysis = result[1];
     //$('#parsedCode').val(JSON.stringify(parseCode(codeAfterSub), null, 3));
-    generateColorfulCode(codeAfterSub, analysis);
-    $('#parsedCode').val(rednderCFGGraph(parsedCode));
+    let dotgraph = rednderCFGGraph(parsedCode);
+    $('#parsedCode').val(dotgraph);
 }
 
 function rednderCFGGraph(ast) {
     let cfg = esgraph(ast['body'][0]['body']);
     let graph = esgraph.dot(cfg, ast);
-    graph = createCFG(ast).toString();
+    let cfgGraph = dotgraphToCFG(graph);
+    cfgGraph.removeExceptionEdges();
+    graph = cfgGraph.toString();
+    console.log(graph)
     let dot = 'digraph{' + graph + '}';
     let graphElement = document.getElementById('graph');
     let viz = new Viz({Module, render});

@@ -14,4 +14,8 @@ export class CFGGraph {
         }
         return res;
     }
+
+    removeExceptionEdges() {
+        this.edges = this.edges.filter((e) => e.color !== '"red"');
+    }
 }
