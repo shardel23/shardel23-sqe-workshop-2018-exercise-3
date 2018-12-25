@@ -1,4 +1,4 @@
-import {parsedCodeToOriginalCode} from './code-analyzer';
+import {astToCode} from './code-analyzer';
 import * as esprima from 'esprima';
 
 export const testCode = 'function binarySearch(a, b){\n' +
@@ -27,7 +27,7 @@ export const defaultCodeToParse = 'function foo(x, y, z){\n' +
 export function substituteAndAnalyze(ast, args) {
     let subbedAst = substitute(ast);
     let ifsEvaluations = statementsAnalyzer(subbedAst, args);
-    return [parsedCodeToOriginalCode(subbedAst), ifsEvaluations];
+    return [astToCode(subbedAst), ifsEvaluations];
 }
 
 function substitute(code) {

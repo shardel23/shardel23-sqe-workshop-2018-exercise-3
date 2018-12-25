@@ -5,8 +5,8 @@ const parseCode = (codeToParse) => {
     return esprima.parseScript(codeToParse, {loc: true, jsx: true});
 };
 
-const parsedCodeToOriginalCode = (parsedCode) => {
+const astToCode = (parsedCode) => {
     return escodegen.generate(parsedCode);
 };
 
-export {parseCode, parsedCodeToOriginalCode};
+export {parseCode, astToCode};

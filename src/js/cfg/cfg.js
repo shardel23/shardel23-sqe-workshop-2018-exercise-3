@@ -2,41 +2,20 @@ import {GraphNode} from './GraphNode';
 import {Edge} from './Edge';
 import {CFGGraph} from './CFGGraph';
 
-export function createCFG(ast) {
-    let nodes = [];
-    let edges = [];
-
-    let n1 = new GraphNode(1, 'Shahar', '', '', '');
-    let n2 = new GraphNode(2, 'Ayelet', '', '', '');
-
-    let e1 = new Edge(n1, n2, 'Loves', 'red');
-    let e2 = new Edge(n2, n1, 'Loves', 'red');
-
-    nodes.push(n1, n2);
-    edges.push(e1, e2);
-
-    let cfgGraph = new CFGGraph(nodes, edges);
-    return cfgGraph;
-}
-
-export function dotgraphToCFG(dotgraph) {
+export function dotgraphToCFG(dotgraph, flownodes) {
     let lines = dotgraph.split('\n');
     let nodes = [];
     let edges = [];
     lines.forEach(parseLine);
     function parseLine(line) {
-        if (line === '') {
-            return;
-        }
-        if (line.includes('->')) {
-            edges.push(parseEdge(line));
-        }
-        else {
-            nodes.push(parseNode(line));
-        }
+        if (line === '') { return; }
+        if (line.includes('->')) { edges.push(parseEdge(line)); }
+        else { nodes.push(parseNode(line)); }
     }
-    let cfg = new CFGGraph(nodes, edges);
-    return cfg;
+    for (let i=0; i<nodes.length; i++) {
+        nodes[i].addAstNode(flownodes[i].astNode);
+    }
+    return new CFGGraph(nodes, edges);
 }
 
 function parseNode(line) {

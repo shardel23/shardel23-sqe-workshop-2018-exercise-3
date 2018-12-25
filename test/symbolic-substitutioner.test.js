@@ -1,4 +1,4 @@
-import {parseCode, parsedCodeToOriginalCode} from '../src/js/code-analyzer';
+import {parseCode, astToCode} from '../src/js/code-analyzer';
 import {substituteAndAnalyze} from '../src/js/symbolic-substitutioner';
 import assert from 'assert';
 
@@ -12,7 +12,7 @@ function testAnalyze(code, args) {
 }
 
 function parseAndGenerate(code) {
-    return parsedCodeToOriginalCode(parseCode(code));
+    return astToCode(parseCode(code));
 }
 
 function generateTestCaseSubstitution(name, input, expected) {
