@@ -39,11 +39,11 @@ function onParseButtonClick(text, valuesString) {
     let values = parseValues(valuesString);
     $('#codePlaceholder').val(text);
     let parsedCode = parseCode(codeToParse);
-    let dotgraph = rednderCFGGraph(parsedCode);
+    let dotgraph = renderCFGGraph(parsedCode);
     $('#parsedCode').val(dotgraph);
 }
 
-function rednderCFGGraph(ast) {
+function renderCFGGraph(ast) {
     let cfg = esgraph(ast['body'][0]['body']);
     let cfgGraph = dotgraphToCFG(esgraph.dot(cfg, ast), cfg[2]);
     cfgGraph.alterGraph();
