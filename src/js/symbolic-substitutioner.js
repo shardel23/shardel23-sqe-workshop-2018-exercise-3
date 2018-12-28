@@ -77,7 +77,15 @@ function removeLocalsRecursive(map, paramNames) {
     return map;
 }
 
-function getParamNames(map) {
+export function getParamsMap(params, values) {
+    let result = {};
+    for (let i=0; i<values.length && i<params.length; i++) {
+        result[params[i]] = values[i];
+    }
+    return result;
+}
+
+export function getParamNames(map) {
     let params = map['body'][0]['params'];
     let paramsNames = [];
     for (let i = 0; i < params.length; i++) {
@@ -236,7 +244,7 @@ function evaluateBinaryExpression(left, right, operator, args) {
     return eval(evalLeft + ' ' + operator + ' ' + evalRight);
 }
 
-function evaluateExpression(expr, args) {
+export function evaluateExpression(expr, args) {
     if (expr['type'] === 'BinaryExpression') {
         let left = expr['left'];
         let operator = expr['operator'];

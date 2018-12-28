@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {parseCode} from './code-analyzer';
-import {testCode} from './symbolic-substitutioner';
+import {getParamNames, getParamsMap, testCode} from './symbolic-substitutioner';
 import * as esgraph from 'esgraph';
 import Viz from 'viz.js';
 import {Module, render} from 'viz.js/full.render.js';
@@ -27,7 +27,7 @@ $(document).ready(function () {
         onParseButtonClick($('#codePlaceholder').val(), $('#paramValuesTextArea').val());
     });
     $('#parseDefaultTextButton').click(() => {
-        onParseButtonClick(defaultInputCode, 'x=1,y=2,z=3');
+        onParseButtonClick(defaultInputCode, '1, 2, 3');
     });
     $('#parseTestCodeButton').click(() => {
         onParseButtonClick(testCode, 'a=1,b=2');
@@ -36,17 +36,17 @@ $(document).ready(function () {
 
 function onParseButtonClick(text, valuesString) {
     let codeToParse = text;
-    let values = parseValues(valuesString);
     $('#codePlaceholder').val(text);
     let parsedCode = parseCode(codeToParse);
-    let dotgraph = renderCFGGraph(parsedCode);
+    let paramsMap = getParamsMap(getParamNames(parsedCode), parseValues(valuesString));
+    let dotgraph = renderCFGGraph(parsedCode, paramsMap);
     $('#parsedCode').val(dotgraph);
 }
 
-function renderCFGGraph(ast) {
+function renderCFGGraph(ast, paramsToValues) {
     let cfg = esgraph(ast['body'][0]['body']);
     let cfgGraph = dotgraphToCFG(esgraph.dot(cfg, ast), cfg[2]);
-    cfgGraph.alterGraph();
+    cfgGraph.alterGraph(paramsToValues);
     let graph = cfgGraph.toString();
     let dot = 'digraph{' + graph + '}';
     let graphElement = document.getElementById('graph');
@@ -61,14 +61,11 @@ function renderCFGGraph(ast) {
 
 function parseValues(str) {
     if (str.isEmpty) {
-        return {};
+        return [];
     }
-    let map = {};
-    let pairs = str.split(',');
-    for (let i=0; i<pairs.length; i++) {
-        let pair = pairs[i];
-        let keyAndValue = pair.split('=');
-        map[keyAndValue[0]] = parseInt(keyAndValue[1]);
-    }
-    return map;
+    let values = str.split(', ');
+    let intValues = values.map(str => {
+        return parseInt(str);
+    });
+    return intValues;
 }

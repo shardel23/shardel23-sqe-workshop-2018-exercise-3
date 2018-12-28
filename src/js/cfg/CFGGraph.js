@@ -1,6 +1,35 @@
 import * as esprima from 'esprima';
 import {Edge} from './Edge';
 import {GraphNode} from './GraphNode';
+import {evaluateExpression} from '../symbolic-substitutioner';
+
+function copyMap(map) {
+    let newMap = {};
+    for (let i in map)
+        newMap[i] = map[i];
+    return newMap;
+}
+
+function updateVarsToValues(varsToValues, ast) {
+    if (ast.type === esprima.Syntax.VariableDeclaration) {
+        let declaration = ast['declarations'][0];
+        let id = declaration['id']['name'];
+        let init = declaration['init'];
+        if (init !== null) {
+            varsToValues[id] = evaluateExpression(init, varsToValues);
+        }
+    }
+    else if (ast.type === esprima.Syntax.AssignmentExpression) {
+        let id = ast['left']['name'];
+        let value = ast['right'];
+        varsToValues[id] = evaluateExpression(value, varsToValues);
+    }
+}
+
+function determineCondition(ast, varsToValues) {
+    let result = evaluateExpression(ast, varsToValues);
+    return result ? 1 : 0;
+}
 
 export class CFGGraph {
     constructor(nodes, edges) {
@@ -50,7 +79,7 @@ export class CFGGraph {
 
     joinNodes() {
         for (let i=0; i<this.nodes.length-1; i++) {
-            if (!isIforWhileNode(this.nodes[i]) && !isIforWhileNode(this.nodes[i+1])) {
+            if (!isIforWhileNode(this.nodes[i]) && !isIforWhileNode(this.nodes[i+1]) && !isReturnNode(this.nodes[i+1])) {
                 if (this.isFatherOf(this.nodes[i], this.nodes[i+1]) && this.hasOnlyOneFather(this.nodes[i+1])) {
                     this.joinTwoNodes(this.nodes[i], this.nodes[i + 1]);
                     i--;
@@ -156,41 +185,73 @@ export class CFGGraph {
         });
     }
 
-    color() {
-        let nodesToColor = this.calcNodesToColor();
+    color(conditionsValues) {
+        let nodesToColor = this.calcNodesToColor(conditionsValues);
         nodesToColor.forEach(n => {
             n.color = 'green';
             n.style = 'filled';
         });
     }
 
-    calcNodesToColor() {
+    determineConditionsValues(paramsToValues) {
+        let conditionValues = [];
+        let varsToValues = copyMap(paramsToValues);
         let done = false;
-        let nodesToColor = [];
+        const MAX_COUNT = 1000;
+        let count = 0;
         let node = this.nodes[0];
         while (!done) {
-            nodesToColor.push(node);
-            if (this.isEmptyNode(node)) {
-                node = this.findNextNode(node);
+            updateVarsToValues(varsToValues, node.ast);
+            if (node.ast.type === esprima.Syntax.ReturnStatement) {
+                done = true;
+            }
+            if (isIforWhileNode(node)) {
+                let evaluation = determineCondition(node.ast, varsToValues);
+                conditionValues.push(evaluation);
+                node = this.findNextNodeByEvaluation(node, evaluation ? '"true"' : '"false"');
             }
             else {
-                if (node.ast.type === esprima.Syntax.ReturnStatement) {
-                    done = true;
-                }
-                if (isIforWhileNode(node)) {
-                    let evaluation = Math.random() < 0.5 ? '"false"' : '"true"';
-                    // TODO: Replace this with real evaluation
-                    node = this.findNextNodeByEvaluation(node, evaluation);
-                }
-                else {
+                node = this.findNextNode(node);
+            }
+            count++;
+        }
+        return conditionValues;
+    }
+
+    calcNodesToColor(conditionsValues) {
+        let done = false;
+        let nodesToColor = [];
+        const MAX_COUNT = 1000;
+        let count = 0;
+        let node = this.nodes[0];
+        while (!done && count < MAX_COUNT) {
+            if (node === undefined) {
+                done = true;
+            }
+            else {
+                nodesToColor.push(node);
+                if (CFGGraph.isEmptyNode(node)) {
                     node = this.findNextNode(node);
                 }
+                else {
+                    if (node.ast.type === esprima.Syntax.ReturnStatement) {
+                        done = true;
+                    }
+                    if (isIforWhileNode(node)) {
+                        let evaluation = conditionsValues.shift() === 0 ? '"false"' : '"true"';
+                        node = this.findNextNodeByEvaluation(node, evaluation);
+                    }
+                    else {
+                        node = this.findNextNode(node);
+                    }
+                }
+                count++;
             }
         }
         return nodesToColor;
     }
 
-    isEmptyNode(node) {
+    static isEmptyNode(node) {
         return node.index.startsWith('en');
     }
 
@@ -221,14 +282,15 @@ export class CFGGraph {
         }
     }
 
-    alterGraph() {
+    alterGraph(paramsToValues) {
         this.removeExceptionEdges();
         this.modifyLabels();
         this.removeNodes(['"entry"', '"exit"']);
+        let conditionsValues = this.determineConditionsValues(paramsToValues);
         this.joinNodes();
         this.shape();
         this.createEmptyNodes();
-        this.color();
+        this.color(conditionsValues);
     }
 }
 
@@ -241,4 +303,8 @@ const expressionTypes = [
 
 function isIforWhileNode(node) {
     return expressionTypes.includes(node.ast.type);
+}
+
+function isReturnNode(node) {
+    return node.ast.type === esprima.Syntax.ReturnStatement;
 }
