@@ -30,7 +30,7 @@ $(document).ready(function () {
         onParseButtonClick(defaultInputCode, '1, 2, 3');
     });
     $('#parseTestCodeButton').click(() => {
-        onParseButtonClick(testCode, 'a=1,b=2');
+        onParseButtonClick(testCode, '1, 2');
     });
 });
 
@@ -41,6 +41,7 @@ function onParseButtonClick(text, valuesString) {
     let paramsMap = getParamsMap(getParamNames(parsedCode), parseValues(valuesString));
     let dotgraph = renderCFGGraph(parsedCode, paramsMap);
     $('#parsedCode').val(dotgraph);
+    $('#paramValuesTextArea').val(valuesString);
 }
 
 function renderCFGGraph(ast, paramsToValues) {

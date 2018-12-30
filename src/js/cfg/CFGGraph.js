@@ -282,12 +282,22 @@ export class CFGGraph {
         }
     }
 
+    numberNodes() {
+        let index = 0;
+        this.nodes.forEach(n => {
+            let curLabel = n.label.substring(1, n.label.length);
+            n.label = '"-' + index + '-\n' + curLabel;
+            index++;
+        });
+    }
+
     alterGraph(paramsToValues) {
         this.removeExceptionEdges();
         this.modifyLabels();
         this.removeNodes(['"entry"', '"exit"']);
         let conditionsValues = this.determineConditionsValues(paramsToValues);
         this.joinNodes();
+        this.numberNodes();
         this.shape();
         this.createEmptyNodes();
         this.color(conditionsValues);
