@@ -1,7 +1,7 @@
 import * as esprima from 'esprima';
 import {Edge} from './Edge';
 import {GraphNode} from './GraphNode';
-import {evaluateExpression} from '../symbolic-substitutioner';
+import {evaluateExpression} from '../code-analyzer';
 
 function copyMap(map) {
     let newMap = {};
@@ -38,12 +38,34 @@ export class CFGGraph {
         this.emptyNodesCounter = 0;
     }
 
+    static newGraph(numOfNodes, numOfEdges) {
+        let nodes = [];
+        let edges = [];
+        for (let i = 0; i < numOfNodes; i++) {
+            nodes.push(new GraphNode(i));
+        }
+        for (let i = 0; i < numOfEdges; i++) {
+            edges.push(new Edge());
+        }
+        return new CFGGraph(nodes, edges);
+    }
+
+    compareTo(other) {
+        if (this.nodes.length !== other.nodes.length) {
+            return false;
+        }
+        if (this.edges.length !== other.edges.length) {
+            return false;
+        }
+        return true;
+    }
+
     toString() {
         let res = '';
-        for (let i=0; i<this.nodes.length; i++) {
+        for (let i = 0; i < this.nodes.length; i++) {
             res += this.nodes[i].toString() + '\n';
         }
-        for (let i=0; i<this.edges.length; i++){
+        for (let i = 0; i < this.edges.length; i++) {
             res += this.edges[i].toString() + '\n';
         }
         return res;
@@ -54,8 +76,7 @@ export class CFGGraph {
     }
 
     modifyLabels() {
-        //this.nodes.forEach((n) => n.modifyLabel());
-        for (let i=1; i<this.nodes.length-1; i++) {
+        for (let i = 1; i < this.nodes.length - 1; i++) {
             this.nodes[i].modifyLabel();
         }
     }
@@ -77,13 +98,18 @@ export class CFGGraph {
             e => !nodes.includes(e.from) && !nodes.includes(e.to));
     }
 
+    joinCondition(i) {
+        if (!isIforWhileNode(this.nodes[i]) && !isIforWhileNode(this.nodes[i + 1]) && !isReturnNode(this.nodes[i + 1])) {
+            return (this.isFatherOf(this.nodes[i], this.nodes[i + 1]) && this.hasOnlyOneFather(this.nodes[i + 1]));
+        }
+        return false;
+    }
+
     joinNodes() {
-        for (let i=0; i<this.nodes.length-1; i++) {
-            if (!isIforWhileNode(this.nodes[i]) && !isIforWhileNode(this.nodes[i+1]) && !isReturnNode(this.nodes[i+1])) {
-                if (this.isFatherOf(this.nodes[i], this.nodes[i+1]) && this.hasOnlyOneFather(this.nodes[i+1])) {
-                    this.joinTwoNodes(this.nodes[i], this.nodes[i + 1]);
-                    i--;
-                }
+        for (let i = 0; i < this.nodes.length - 1; i++) {
+            if (this.joinCondition(i)) {
+                this.joinTwoNodes(this.nodes[i], this.nodes[i + 1]);
+                i--;
             }
         }
     }
@@ -96,19 +122,14 @@ export class CFGGraph {
             counters[nodeTo] = counters[nodeTo] ? counters[nodeTo] + 1 : 1;
         });
         Object.keys(counters).forEach(key => {
-            if (counters[key] > 1) {
-                nodesToSwitch.push(key);
-            }
+            if (counters[key] > 1) { nodesToSwitch.push(key); }
         });
         nodesToSwitch.forEach(n => {
             let emptyNode = this.generateEmptyNode();
             let newEdge = new Edge(emptyNode.index, n, '', '');
             this.edges.forEach(e => {
                 let nodeTo = e.to;
-                if (nodeTo === n) {
-                    e.to = emptyNode.index;
-                }
-            });
+                if (nodeTo === n) { e.to = emptyNode.index; } });
             this.nodes.push(emptyNode);
             this.edges.push(newEdge);
         });
@@ -155,18 +176,14 @@ export class CFGGraph {
             let e = this.edges[i];
             if (e.from === index) {
                 tos.push(e.to);
-                edgesToRemove.push(e);
-            }
+                edgesToRemove.push(e); }
             if (e.to === index) {
                 froms.push(e.from);
-                edgesToRemove.push(e);
-            }
+                edgesToRemove.push(e); }
         }
         froms.forEach(f => {
             tos.forEach(t => {
-                this.edges.push(new Edge(f, t, '', ''));
-            });
-        });
+                this.edges.push(new Edge(f, t, '', '')); }); });
         this.removeSpecificEdges(edgesToRemove);
     }
 
@@ -193,6 +210,13 @@ export class CFGGraph {
         });
     }
 
+    checkIfDone(node) {
+        if (node.ast === undefined) {
+            return false;
+        }
+        return node.ast.type === esprima.Syntax.ReturnStatement;
+    }
+
     determineConditionsValues(paramsToValues) {
         let conditionValues = [];
         let varsToValues = copyMap(paramsToValues);
@@ -200,19 +224,15 @@ export class CFGGraph {
         const MAX_COUNT = 1000;
         let count = 0;
         let node = this.nodes[0];
-        while (!done) {
+        while (!done && count < MAX_COUNT) {
             updateVarsToValues(varsToValues, node.ast);
-            if (node.ast.type === esprima.Syntax.ReturnStatement) {
-                done = true;
-            }
+            done = this.checkIfDone(node);
             if (isIforWhileNode(node)) {
                 let evaluation = determineCondition(node.ast, varsToValues);
                 conditionValues.push(evaluation);
                 node = this.findNextNodeByEvaluation(node, evaluation ? '"true"' : '"false"');
             }
-            else {
-                node = this.findNextNode(node);
-            }
+            else { node = this.findNextNode(node); }
             count++;
         }
         return conditionValues;
@@ -225,35 +245,23 @@ export class CFGGraph {
         let count = 0;
         let node = this.nodes[0];
         while (!done && count < MAX_COUNT) {
-            if (node === undefined) {
-                done = true;
+            nodesToColor.push(node);
+            done = this.checkIfDone(node);
+            if (isIforWhileNode(node)) {
+                let evaluation = conditionsValues.shift() === 0 ? '"false"' : '"true"';
+                node = this.findNextNodeByEvaluation(node, evaluation);
             }
             else {
-                nodesToColor.push(node);
-                if (CFGGraph.isEmptyNode(node)) {
-                    node = this.findNextNode(node);
-                }
-                else {
-                    if (node.ast.type === esprima.Syntax.ReturnStatement) {
-                        done = true;
-                    }
-                    if (isIforWhileNode(node)) {
-                        let evaluation = conditionsValues.shift() === 0 ? '"false"' : '"true"';
-                        node = this.findNextNodeByEvaluation(node, evaluation);
-                    }
-                    else {
-                        node = this.findNextNode(node);
-                    }
-                }
-                count++;
+                node = this.findNextNode(node);
             }
+            count++;
         }
         return nodesToColor;
     }
 
-    static isEmptyNode(node) {
-        return node.index.startsWith('en');
-    }
+    // static isEmptyNode(node) {
+    //     return node.index.startsWith('en');
+    // }
 
     findNextNodeByEvaluation(fromNode, evaluation) {
         for (let i=0; i<this.edges.length; i++) {
@@ -312,6 +320,9 @@ const expressionTypes = [
 ];
 
 function isIforWhileNode(node) {
+    if (node.ast === undefined) {
+        return false;
+    }
     return expressionTypes.includes(node.ast.type);
 }
 

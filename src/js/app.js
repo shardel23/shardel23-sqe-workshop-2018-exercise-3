@@ -1,6 +1,5 @@
 import $ from 'jquery';
-import {parseCode} from './code-analyzer';
-import {getParamNames, getParamsMap, testCode} from './symbolic-substitutioner';
+import {getParamNames, getParamsMap, parseCode, parseValues} from './code-analyzer';
 import * as esgraph from 'esgraph';
 import Viz from 'viz.js';
 import {Module, render} from 'viz.js/full.render.js';
@@ -21,6 +20,12 @@ const defaultInputCode = 'function foo(x, y, z){\n' +
     '    \n' +
     '    return c;\n' +
     '}\n';
+
+const testCode = 'function binarySearch(a, b){\n' +
+    '    let x = 5;\n' +
+    '    let z = x;\n' +
+    '    return a[z] + x + b;\n' +
+    '}';
 
 $(document).ready(function () {
     $('#codeSubmissionButton').click(() => {
@@ -58,15 +63,4 @@ function renderCFGGraph(ast, paramsToValues) {
             graphElement.append(element);
         });
     return graph;
-}
-
-function parseValues(str) {
-    if (str.isEmpty) {
-        return [];
-    }
-    let values = str.split(', ');
-    let intValues = values.map(str => {
-        return parseInt(str);
-    });
-    return intValues;
 }
